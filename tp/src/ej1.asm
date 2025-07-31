@@ -63,27 +63,36 @@ ej1:
 	push RBP
 	mov RBP, RSP
 
-	;R8 = cantidad de píxeles
+	; Cargo constantes.
+	movups XMM4, [rojos]
+	movups XMM5, [verdes]
+	movups XMM6, [azules]
+	
+	movups XMM8, [cte_rojo]
+	movups XMM9, [cte_verde]
+	movups XMM10, [cte_azul]
+
+	movups XMM11, [reordeno]
+
+	movups XMM12, [transparencia]
+
+	; R8 = cantidad de píxeles
 	imul RDX, RCX
 
 	.ciclo:
 	cmp RDX, 0
 	je .final
 
-	;Cálculo la luminosidad.
+	; Cálculo la luminosidad.
 	movdqa XMM1, [RSI]
 	movdqa XMM2, [RSI]
 	movdqa XMM3, [RSI]
-	
-	movups XMM4, [rojos]
-	movups XMM5, [verdes]
-	movups XMM6, [azules]
 	
 	pand XMM1, XMM4 
 	pand XMM2, XMM5 
 	pand XMM3, XMM6 
 	
-	;Shifteo para ordenar los píxeles verdes y azules.
+	; Shifteo para ordenar los píxeles verdes y azules.
 	psrldq XMM2, 1
 	psrldq XMM3, 2
 	
@@ -91,15 +100,11 @@ ej1:
 	cvtdq2ps XMM2,	XMM2
 	cvtdq2ps XMM3,	XMM3
 
-	movups XMM4, [cte_rojo]
-	movups XMM5, [cte_verde]
-	movups XMM6, [cte_azul]
-
-	mulps XMM1, XMM4 
-	mulps XMM2, XMM5 
-	mulps XMM3, XMM6 
+	mulps XMM1, XMM8 
+	mulps XMM2, XMM9 
+	mulps XMM3, XMM10 
 	
-	;XMM7 = luminosidades de los 4 píxeles
+	; XMM7 = luminosidades de los 4 píxeles
 	pxor XMM7, XMM7
 	addps XMM7, XMM1
 	addps XMM7, XMM2
@@ -107,13 +112,11 @@ ej1:
 
 	cvtps2dq XMM7, XMM7
 	
-	;Seteo la luminosidades en r, g y b de los 4 píxeles.
-	movups XMM0, [reordeno]
-	pshufb XMM7, XMM0
+	; Seteo la luminosidades en r, g y b de los 4 píxeles.
+	pshufb XMM7, XMM11
 
-	;Seteo la transparencia de los píxeles.
-	movups XMM0, [transparencia]
-	paddd XMM7, XMM0
+	; Seteo la transparencia de los píxeles.
+	paddd XMM7, XMM12
 
 	movdqa [RDI], XMM7
 	

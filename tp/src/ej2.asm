@@ -87,23 +87,42 @@ ej2:
 	push RBP
 	mov RBP, RSP
 	
-	;RDX = cantidad de píxeles
+	; RDX = cantidad de píxeles
 	imul RDX, RCX
+	
+	; Cargo constantes.
+	movdqu XMM4, [rojos]
+	movdqu XMM5, [verdes]
+	movdqu XMM6, [azules]
+
+	movdqu XMM7, [cte_3_dec]
+
+	movdqu XMM8, [cte_64]
+	movdqu XMM9, [cte_128]
+
+	movdqu XMM10, [cte_192]
+	
+	movdqu XMM11, [cte_4_neg]
+
+	movdqu XMM12, [cte_384]
+
+	movdqu XMM13, [cte_0]
+
+	movdqu XMM14, [cte_255]
+
+	movdqu XMM15, [transparencia]
 
 	.ciclo:
 	cmp RDX, 0
 	je .final
 
 	;*********************************************
-	;Desde aquí cálculo la temperatura de 4 píxeles.
+	; Desde aquí cálculo la temperatura de 4 píxeles.
 	movdqa XMM1, [RSI]
 	movdqa XMM2, [RSI]
 	movdqa XMM3, [RSI]
 
-	;Los filtro según su color.
-	movdqu XMM4, [rojos]
-	movdqu XMM5, [verdes]
-	movdqu XMM6, [azules]
+	; Los filtro según su color.
 
 	pshufb XMM1, XMM4
 	pshufb XMM2, XMM5
@@ -113,80 +132,71 @@ ej2:
 	cvtdq2ps XMM2, XMM2 
 	cvtdq2ps XMM3, XMM3 
 
-	;Los sumo y divido por 3.
-	pxor XMM7, XMM7
-	addps XMM7, XMM1
-	addps XMM7, XMM2
-	addps XMM7, XMM3
-	movdqu XMM0, [cte_3_dec]
-	divps XMM7, XMM0
+	; Los sumo y divido por 3.
+	pxor XMM0, XMM0
+	addps XMM0, XMM1
+	addps XMM0, XMM2
+	addps XMM0, XMM3
+	divps XMM0, XMM7
 
-	;Obtengo la temperatura de los 4 píxeles.
-	cvtps2dq XMM7, XMM7 
+	; Obtengo la temperatura de los 4 píxeles.
+	cvtps2dq XMM0, XMM0 
 
 	;*********************************************
-	;Desde aquí cálculo la "función de temperatura".
-	;XMM1 = temperatura de rojos
-	;XMM2 = temperatura de verdes
-	;XMM3 = temperatura de azules
-	movdqa XMM1, XMM7
-	movdqa XMM2, XMM7
-	movdqa XMM3, XMM7
+	; Desde aquí cálculo la "función de temperatura".
+	; XMM1 = temperatura de rojos
+	; XMM2 = temperatura de verdes
+	; XMM3 = temperatura de azules
+	movdqa XMM1, XMM0
+	movdqa XMM2, XMM0
+	movdqa XMM3, XMM0
 	
-	movdqu XMM4, [cte_64]
-	movdqu XMM5, [cte_128]
-	paddd XMM2, XMM4
-	paddd XMM3, XMM5
+	; Sumo  64 y 128.
+	paddd XMM2, XMM8
+	paddd XMM3, XMM9
 	
-	;Realizo la resta por 192 y aplico el módulo.
-	movdqu XMM0, [cte_192]
-	psubd XMM1, XMM0
-	psubd XMM2, XMM0
-	psubd XMM3, XMM0
+	; Realizo la resta por 192.
+	psubd XMM1, XMM10
+	psubd XMM2, XMM10
+	psubd XMM3, XMM10
 
+	; Aplico el módulo.
 	pabsd XMM1, XMM1
 	pabsd XMM2, XMM2
 	pabsd XMM3, XMM3
 	
-	;Múltiplico por -4 y lo sumo a 384.
-	movdqu XMM0, [cte_4_neg]
-	pmulld XMM1, XMM0
-	pmulld XMM2, XMM0
-	pmulld XMM3, XMM0
+	; Múltiplico por -4.
+	pmulld XMM1, XMM11
+	pmulld XMM2, XMM11
+	pmulld XMM3, XMM11
 	
-	movdqu XMM0, [cte_384]
-	paddd XMM1, XMM0
-	paddd XMM2, XMM0
-	paddd XMM3, XMM0
+	; Lo sumo a 384.
+	paddd XMM1, XMM12
+	paddd XMM2, XMM12
+	paddd XMM3, XMM12
 	
 	;Aplico el máximo y mínimo.
-	movdqu XMM4, [cte_0]
-	movdqu XMM5, [cte_0]
-	movdqu XMM6, [cte_0]
+	; XMM13 = [cte_0]
+	pmaxsd XMM1, XMM13
+	pmaxsd XMM2, XMM13
+	pmaxsd XMM3, XMM13
 
-	pmaxsd XMM1, XMM4
-	pmaxsd XMM2, XMM5
-	pmaxsd XMM3, XMM6
-
-	movdqu XMM4, [cte_255]
-	movdqu XMM5, [cte_255]
-	movdqu XMM6, [cte_255]
-
-	pminsd XMM1, XMM4
-	pminsd XMM2, XMM5
-	pminsd XMM3, XMM6
+	; XMM14 = [cte_255]
+	pminsd XMM1, XMM14
+	pminsd XMM2, XMM14
+	pminsd XMM3, XMM14
 	
-	;Como XMM2 = temperatura de verdes
-	;XMM3 = temperatura de azules,
-	;realizo un shift, para un reordenamiento.
+	; Como XMM2 = temperatura de verdes
+	; XMM3 = temperatura de azules,
+	; realizo un shift, para un reordenamiento.
 	pslldq XMM2,1
 	pslldq XMM3,2
 	
-	;Reordeno temperaturas y seteo transparencia.
+	; Reordeno temperaturas y seteo transparencia.
+	; XMM15 = [transparencia]
 	paddd XMM1, XMM2
 	paddd XMM1, XMM3
-	movdqu XMM0, [transparencia]
-	paddb XMM1, XMM0
+	paddb XMM1, XMM15
 
 	movdqa [RDI], XMM1
 	

@@ -50,50 +50,52 @@ ej3a:
 	push RBP
 	mov RBP, RSP
 
-	;Escala y Offset repetidos 4 veces, de 32 bits,
-	;en los registros XMM:
-	;XMM9 = escala
-	;XMM10 = offset
-	pinsrq XMM9, RDX, 0
-	pinsrq XMM10, RCX, 0
+	; Escala y Offset repetidos 4 veces, de 32 bits,
+	; en los registros XMM:
+	; XMM9 = escala
+	; XMM10 = offset
+
+	movd XMM9, EDX
+	movd XMM10, ECX
 
 	movdqu XMM0, [trasladar_valor]
 
 	pshufb XMM9, XMM0
 	pshufb XMM10, XMM0
 
-	;R8 = cantidad_de_pixeles
+	; Cargo constantes.
+	movdqu XMM5, [primera_parte]
+	movdqu XMM6, [segunda_parte]
+	movdqu XMM7, [tercera_parte]
+	movdqu XMM8, [cuarta_parte]
+	
+	; R8 = cantidad_de_pixeles
 	imul R8, R9
 
 	.ciclo:
 	cmp R8, 0
 	je .final
 
-	;Los registros XMM (1,2,3 y 4) tienen los mismos 
-	;16 números de 8 bits sin signo los divido en 4 
-	;partes para trabajar en 32 bits.
+	; Los registros XMM (1,2,3 y 4) tienen los mismos 
+	; 16 números de 8 bits sin signo los divido en 4 
+	; partes para trabajar en 32 bits.
 	movdqu XMM1, [RSI]
 	movdqu XMM2, [RSI]
 	movdqu XMM3, [RSI]
 	movdqu XMM4, [RSI]
 
-        movdqu XMM5, [primera_parte]
-	movdqu XMM6, [segunda_parte]
-	movdqu XMM7, [tercera_parte]
-	movdqu XMM8, [cuarta_parte]
-        
 	pshufb XMM1, XMM5
 	pshufb XMM2, XMM6
 	pshufb XMM3, XMM7
 	pshufb XMM4, XMM8
 	
-	;Múltiplico por la escala.
+	; Múltiplico por la escala.
 	pmulld XMM1, XMM9
 	pmulld XMM2, XMM9
 	pmulld XMM3, XMM9
 	pmulld XMM4, XMM9
 	
-	;Sumo el offset.
+	; Sumo el offset.
 	paddd XMM1, XMM10
 	paddd XMM2, XMM10
 	paddd XMM3, XMM10
@@ -153,7 +155,7 @@ ej3b:
 	push RBP
 	mov RBP, RSP
 
-	;R9 = cantidad de píxeles
+	; R9 = cantidad de píxeles
 	mov R10, [RBP + 16] 
 	imul R9, R10
 	
@@ -161,22 +163,22 @@ ej3b:
 	cmp R9, 0
 	je .final
 
-	;Comparo depth_a con depth_b, para 
-	;obtener una máscara y una copia.
+	; Comparo depth_a con depth_b, para 
+	; obtener una máscara y una copia.
 	movdqa XMM0, [R8]
 	movdqa XMM1, [RDX]
 	pcmpgtd XMM0, XMM1
 	
 	movdqa XMM1, XMM0
 
-	;Utilizo pand para obtener los píxeles de a
-	;y pandn los de b.
+	; Utilizo pand para obtener los píxeles de a
+	; y pandn los de b.
 	movdqa XMM2, [RSI]
 	movdqa XMM3, [RCX]
 	pand XMM2, XMM0
 	pandn XMM1, XMM3
 
-	;Obtengo los píxeles a guardar ya comparados.
+	; Obtengo los píxeles a guardar ya comparados.
 	paddd XMM2, XMM1
 	movdqa [RDI], XMM2
 
